@@ -1,0 +1,531 @@
+#!/usr/bin/perl
+##########################################################
+# 3PARMON LINUX - 3PAR Monitoring Solution
+##########################################################
+# Last update : 06/12/2016 adam.cardillo@hpe.com
+# Usage: Run in crontab
+# Version: 1.0
+# OM Policies:
+#
+#       log   - Log file encapsulator
+#
+##########################################################
+
+##########################################################
+# 3. MAIN SCRIPT - DO NOT EDIT
+##########################################################
+#Load in configuration file
+
+my $CONFIG = $ARGV[0];
+require "//var//opt//OV//bin//3parmon-cfg//$CONFIG";
+my $TIMESTAMP = getLoggingTime();
+
+# Check if the OS is Linux
+my $OS = "$^O";
+if ("$OS"
+    eq "linux") {
+    linux();
+}
+else {
+
+    exit 1;
+}
+
+sub nagios_check {
+
+
+
+}
+
+# Run Linux Function
+sub linux {
+        #Set log paths
+        my $LOGPATH = "//var//opt//OV//log//OpC//3parmon.txt";
+        my @CONNECT;
+         if (length $HOST > 0) {
+                my $CONNECTCOMMAND = "ssh $USERNAME\@$HOST"; #Creating ssh command
+                push(@CONNECT, "$CONNECTCOMMAND"); #adding ssh command to CONNECT array
+        }
+
+        open LOGFILE, ">>$LOGPATH"; #openning log file for writing
+
+        if ($CHECK_CPU == 1) {
+                #my $CMD = "statcpu -t -iter 1";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) { #Loop to create command output file and run the 3par command.
+                $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_CPU.tmp";
+                #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                if (!-z $TEMPLOG) { # checking if the temp file has any text
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        while (my $row = <FILE> ) { # read each line and check for conditions
+                                $row =~ s/^\s+//;
+                                $row =~ s/,/ /;
+                                $row =~ s/ +/ /g;
+                                $row =~ s/node.*//;
+                                my @var = split(/ /, $row);
+                                printf "@var[4] \n";
+                                #printf @var;
+                                if (@var[4] <= $CPUCRITICAL && defined @var[4] && @var[0] == 0) {
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Node 0 CPU breached 80% threshold - idle = $var[11]\::major\n";
+                                }
+                                if (@var[4] <= $CPUCRITICAL && defined @var[4] && @var[0] == 1) {
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Node 1 CPU breached 80% threshold - idle = $var[11]\::major\n";
+                                }
+                                if (@var[4] <= $CPUCRITICAL && defined @var[4] && @var[0] == 2) {
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Node 2 CPU breached 80% threshold - idle = $var[11]\::major\n";
+                                }
+                                if (@var[4] <= $CPUCRITICAL && defined @var[4] && @var[0] == 3) {
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Node 3 CPU breached 80% threshold - idle = $var[11]\::major\n";
+                                 }
+                         }
+                } else {
+                        printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                 }
+        }
+    }
+
+        if ($CHECK_SERVICE_REMOTE == 1) {
+                #my $CMD = "statrcvv -d 1 -iter 1 -filt curs,rw,svct,$ST";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_REMOTE_SERVICE_TIMES.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        if (!-z $TEMPLOG) {
+                                open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                                or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                                while (my $row = <FILE> ) {
+                                        $row =~ s/^\s+//;
+                                        $row =~ s/ +/ /g;
+                                        my @arr = split(/ /, $row);
+                                        if (defined $arr[13] && defined $arr[0]) {
+                                                if ( $arr[13] =~ /^[0-9,.E]+$/ ) {
+                                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Service time on Virtual Volume:$arr[0] on path:$arr[4] is greater than $ST ms\::major\n";
+                                                 }
+                                         }
+                                 }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                         }
+                }
+         }
+
+        if ($CHECK_SERVICE == 1) {
+                #my $CMD = "statvlun -d 1 -iter 1 -filt curs,rw,svct,$ST";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_SERVICE_TIMES.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        if (!-z $TEMPLOG) {
+                                open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                                or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                                while (my $row = <FILE> ) {
+                                        $row =~ s/^\s+//;
+                                        $row =~ s/ +/ /g;
+                                        my @arr = split(/ /, $row);
+                                        if (defined $arr[12] && defined $arr[0]) {
+                                                if ( $arr[12] =~ /^[0-9,.E]+$/ ) {
+                                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Service time on Virtual Volume:$arr[1] on path:$arr[3] is greater than $ST ms\::major\n";
+                                                 }
+                                         }
+                                 }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                        }
+                }
+         }
+
+        if ($CHECK_SNAPSHOT_RMPCRIT == 1) {
+                my $CMD = "showvv \"*_ro_*\"";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_SNAPSHOT_RMPCRIT.tmp";
+                #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if (!-z $TEMPLOG) {
+                                my $cnt = 0;
+                                while (my $row = <FILE> ) {
+                                        while ($row =~ /(.*_ro_.*)/ig) {
+                                                $cnt++;
+                                        }
+                                }
+                                if ($cnt >= $SNAPSHOT_RMPCRIT) {
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Too many _ro_ snapshots, snapshot count breached the threshold of $SNAPSHOT_RMPCRIT  - current count is $cnt\::minor\n";
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                         }
+                 }
+         }
+
+         if ($CHECK_SNAPSHOT_BKCRIT == 1) {
+                my $CMD = "showvv \"*_rr_*\"";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_SNAPSHOT_BKCRIT.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if (!-z $TEMPLOG) {
+                                my $cnt = 0;
+                                while (my $row = <FILE> ) {
+                                        while ($row =~ /(.*_rr_.*)/ig) {
+                                                $cnt++;
+                                         }
+                                 }
+                                 if ($cnt >= $SNAPSHOT_BKCRIT) {
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Too many _rr_ snapshots, snapshot count breached the threshold of $SNAPSHOT_BKCRIT   - current count is $cnt\::minor\n";
+                                 }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                         }
+                 }
+        }
+
+
+
+        if ($CHECK_PD == 1) {
+                #my $CMD = "showpd -showcols Id,State -failed -degraded";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_PD.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if (!-z $TEMPLOG) {
+                                while (my $row = <FILE> ) {
+                                        printf "$row \n";
+                                        if($row =~ /failed/i) {
+                                                $row =~ s/^\s+|\s+$//g;
+                                                my @var = split(/\s/, $row);
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::3par physical disk number $var[0] failed.\::major\n";
+                                         }
+                                        if($row =~ /degraded/i) {
+                                                $row =~ s/^\s+|\s+$//g;
+                                                my @var = split(/\s/, $row);
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::3par physical disk number $var[0] degraded\::minor\n";
+                                        }
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                         }
+                 }
+         }
+
+
+         if ($CHECK_NODE == 1) {
+                #my $CMD = "shownode -s";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_NODE.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        $OKNODE = 0;
+                        open(file, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if(! -z $TEMPLOG) {
+                                while (my $row = <file>) {
+                                        if($row =~ /failed/i) {
+                                                my @var = split(/\s/, $row);
+                                                printf LOGFILE "$TIMESTAMP\::$TEMPHOST\::Node @var[3] on the 3par has failed\::major\n";
+                                        }
+                                        if($row =~ /degraded/i) {
+                                                 my @var = split(/\s/, $row);
+                                                 printf LOGFILE "$TIMESTAMP\::$TEMPHOST\::Node @var[3] on the 3par is degraded\::major\n";
+                                         }
+                                        if($row =~ /ok/i) {
+                                                  $OKNODE++;
+                                         }
+                                }
+
+                                if ($TEMPHOST eq $HOST) {
+                                        if($OKNODE < $PARNODE) {
+                                                printf LOGFILE "$TIMESTAMP\::$TEMPHOST\::Node went missing - counted only $OKNODE nodes - should be $PARNODE nodes\::major\n";
+                                         }
+                                 }
+
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                         }
+                }
+         }
+
+        if ($CHECK_LD == 1) {
+                #my $CMD = "showld -state";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_LD.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if (!-z $TEMPLOG) {
+                                while (my $row = <FILE> ) {
+                                        if ($row =~ /failed/i) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::One of the logical disks on the 3par has failed\::major\n";
+                                        }
+                                        if ($row =~ /degraded/i) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::One of the logical disks on the 3par is degraded\::minor\n";
+                                        }
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                         }
+                }
+         }
+
+        if ($CHECK_VV == 1) {
+                #my $CMD = "showvv -showcols Name,State -notree";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_VV.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if (!-z $TEMPLOG) {
+                                while (my $row = <FILE> ) {
+                                if ($row =~ /failed/i) {
+                                        my @var = split(/\s/, $row);
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Virtual Volume $var[0] has failed on the 3par has failed\::major\n";
+                                  }
+                                if ($row =~ /degraded/i) {
+                                        my @var = split(/\s/, $row);
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Virtual Volume $var[0] is degraded on the 3par is degraded\::minor\n";
+                                 }
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                        }
+                }
+        }
+
+
+
+        if ($CHECK_PORT_FC == 1) {
+                #my $CMD = "showport";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_PORT_FC.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if (!-z $TEMPLOG) {
+                                while (my $row = <FILE> ) {
+                                        if($row =~ /loss_sync/i) {
+                                                my @var = split(/\s/, $row);
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::$var[0] FC port has loss sync\::major\n";
+                                        }
+                                        if($row =~ /config_wait/i) {
+                                                my @var = split(/\s/, $row);
+                                                 printf LOGFILE "$TIMESTAMP\::$HOST\::$var[0] FC port status is config_wait\::major\n";
+                                        }
+                                        if($row =~ /login_wait/i) {
+                                                my @var = split(/\s/, $row);
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::$var[0] FC port status is login wait\::major\n";
+                                        }
+                                        if($row =~ /non_participate/i) {
+                                                my @var = split(/\s/, $row);
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::$var[0] FC port status is non pariticpate\::major\n";
+                                        }
+                                        if($row =~ /error/i) {
+                                                my @var = split(/\s/, $row);
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::$var[0] FC port has an error\::major\n";
+                                        }
+                                 }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                        }
+                }
+        }
+
+        if ($CHECK_CAP_SSD == 1) {
+                #my $CMD = "showpd -p -devtype SSD -showcols Size_MB,Free_MB";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_CAP_SSD.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(file, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if(! -z $TEMPLOG) {
+                                @array = <file>;
+                                our $lastline = @array[-1];
+                                $lastline =~ s/ +/ /;
+                                @splitarray = split (/\s/, $lastline);
+                                my $total = @splitarray[0];
+                                my $free = @splitarray[1];
+                                my $used = ($total - $free);
+                                if ( length $total > 0 ) {
+                                        my $percent = ($used / $total) * 100;
+                                        my $percent_rounded = sprintf("%.f", $percent);
+                                        if($percent_rounded >= $PCCRITICALSSD) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::SSD threshold has been breached: SSD Capacity at $percent_rounded\::major\n";
+                                        }elsif($percent_rounded >= $PCWARNINGSSD) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::SSD threshold has been breached: SSD Capacity at $percent_rounded\::minor\n";
+                                        }
+                                }
+                         } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                            }
+                }
+         }
+
+        if ($CHECK_CAP_FC == 1) {
+                #my $CMD = "showpd -p -devtype FC -showcols Size_MB,Free_MB";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_CAP_FC.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(file, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if(! -z $TEMPLOG) {
+                                @array = <file>;
+                                our $lastline = @array[-1];
+                                $lastline =~ s/ +/ /;
+                                @splitarray = split (/\s/, $lastline);
+                                my $total = @splitarray[0];
+                                my $free = @splitarray[1];
+                                my $used = ($total - $free);
+                                if ( length $total > 0 ) {
+                                        my $percent = ($used / $total) * 100;
+                                        my $percent_rounded = sprintf("%.f", $percent);
+                                        if($percent_rounded >= $PCCRITICALFC) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::FC threshold has been breached: FC Capacity at $percent_rounded\::major\n";
+                                        } elsif($percent_rounded >= $PCWARNINGFC) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::FC threshold has been breached: FCCapacity at $percent_rounded\::minor\n";
+                                        }
+                                }
+                        } else {
+                                  printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                        }
+                }
+         }
+
+        if ($CHECK_CAP_NL == 1) {
+                #my $CMD = "showpd -p -devtype NL -showcols Size_MB,Free_MB";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_CAP_NL.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                open(file, '<:encoding(UTF-8)', $TEMPLOG)
+                or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if(! -z $TEMPLOG) {
+                                @array = <file>;
+                                our $lastline = @array[-1];
+                                $lastline =~ s/ +/ /;
+                                @splitarray = split (/\s/, $lastline);
+                                my $total = @splitarray[0];
+                                my $free = @splitarray[1];
+                                my $used = ($total - $free);
+                                if ( length $total > 0 ) {
+                                        my $percent = ($used / $total) * 100;
+                                        my $percent_rounded = sprintf("%.f", $percent);
+                                        if($percent_rounded >= $PCCRITICALNL) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::NL threshold has been breached: NL Capacity at $percent_rounded\::major\n"
+                                        }
+                                        elsif ($percent_rounded >= $PCWARNINGNL) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::NL threshold has been breached: NL Capacity at $percent_rounded\::minor\n";
+                                        }
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                         }
+                }
+        }
+
+        if ($CHECK_PS == 1) {
+                #my $CMD = "shownode -ps";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_PS.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if (!-z $TEMPLOG) {
+                                while (my $row = <FILE> ) {
+                                        if ($row =~ /failed/i) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::power supply has failed\::major\n";
+                                        }
+                                        if ($row =~ /degraded/i) {
+                                                printf LOGFILE "$TIMESTAMP\::$HOST\::power supply has degraded\::minor\n";
+                                        }
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                        }
+                }
+        }
+
+         if ($CHECK_CAGE == 1) {
+                #my $CMD = "checkhealth cage";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_CAGE.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                        or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                        if(! -z $TEMPLOG) {
+                                @array = <FILE>;
+                                our $lastline = @array[-1];
+                                @splitarray = split (/\s/, $lastline);
+                                my $health = @splitarray[4];
+                                if($health ne "healthy:") {
+                                        printf LOGFILE "$TIMESTAMP\::$TEMPHOST\::A cage is in an abnormal state, run \"showcage -d\" & \"checkhealth cage\" to investigate\::major\n";
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                        }
+                }
+        }
+
+
+        if ($CHECK_SNAP_COUNT == 1) {
+                #my $CMD = "showvv -p -type vcopy";
+                my $TEMPLOG;
+                my $OUTPUT;
+                foreach(@CONNECT) {
+                        $TEMPLOG = "//var//opt//OV//log//OpC//tmp//3parmon//$HOST.CHECK_SNAP_COUNT.tmp";
+                        #$OUTPUT = qx{$_ $CMD > "$TEMPLOG"};
+                        if (!-z $TEMPLOG) {
+                                open(FILE, '<:encoding(UTF-8)', $TEMPLOG)
+                                or printf LOGFILE "$TIMESTAMP\::$HOST\::Could not open file '$TEMPLOG' $!\::minor\n";
+                                my $cnt = 0;
+                                while (my $row = <FILE> ) {
+                                        while ($row =~ /\bvcopy\b/ig) {
+                                                $cnt++;
+                                        }
+                                }
+                                if ($cnt >= $MAX_VCOPY_WARNING) {
+                                        printf LOGFILE "$TIMESTAMP\::$HOST\::Number of Virtual Volumes has breached a threshold of $MAX_VCOPY_WARNING: number of VV's $cnt\::minor\n";
+                                }
+                        } else {
+                                printf LOGFILE "$TIMESTAMP\::$HOST\::The file '$TEMPLOG' is empty, command probably didn't work\::minor\n";
+                        }
+                }
+        }
+
+
+        close(LOGFILE);
+
+}
+
+
+sub getLoggingTime {
+    my($SEC, $MIN, $HOUR, $MDAY, $MON, $YEAR, $WDAY, $YDAY, $ISDST) = localtime(time);
+    my $NICE_TIMESTAMP = sprintf("%04d%02d%02d\|%02d:%02d:%02d",
+        $YEAR + 1900, $MON + 1, $MDAY, $HOUR, $MIN, $SEC);
+    return $NICE_TIMESTAMP;
+}

@@ -1,0 +1,103 @@
+$HOST = "";
+$USERNAME = "";
+$PASSWORD = "";
+$PARNODE = "";
+
+#Disk Tier Thresholds;
+$PCCRITICALSSD = 95;
+$PCWARNINGSSD = 90;
+$PCCRITICALFC = 95;
+$PCWARNINGFC = 90;
+$PCCRITICALNL = 95;
+$PCWARNINGNL = 90;
+
+#####
+#CPU Threshold
+$CPUCRITICAL = 20;
+#####
+#Snapshot Threshold
+$SNAPSHOT_BKCRIT = 100;
+$SNAPSHOT_RMPCRIT = 300;
+$MAX_VCOPY_WARNING = 1000;
+#####
+#Copy job Threshold
+$VCOPY_CRITICAL = 1000;
+#####
+# Remote Service Time Threshold (milliseconds)
+$RST = 300;
+# Service Time Threshold (milliseconds)
+$ST = 300;
+
+
+####
+#Enable(1) or Disable(0) Individual condition tests
+#       check_pd :      Check status of physical disks
+#                       Degraded ->             Warning
+#                       Failed ->                       Critical
+$CHECK_PD = 1;
+#       check_cpu :     Check status of cpu
+#                       Degraded ->                     Critical
+$CHECK_CPU = 1;
+#       check_snapshot_bkcrit:  Check status of 'dodgy' snapshots
+#                       Degraded ->                     Critical
+$CHECK_SNAPSHOT_BKCRIT = 0;
+#       check_snapshot_rmpcrit: Check status of rmp snapshots
+#                       Degraded ->                     Critical
+$CHECK_SNAPSHOT_RMPCRIT = 0;
+#       check_node :    Check status of controller nodes
+#           Degraded ->         Warning
+#           Failed ->                   Critical
+$CHECK_NODE = 1;
+#       check_ld :      Check status of logical disks
+#           Degraded ->         Warning
+#           Failed ->           Critical
+$CHECK_LD = 0;
+#       check_vv :      Check status of virtual volumes
+#           Degraded ->         Warning
+#           Failed ->           Critical
+$CHECK_VV = 1;
+#       check_port_fc : Check status of virtual volumes
+#           loss_sync ->                Warning
+#                       config_wait ->          Warning
+#                       login_wait ->           Warning
+#                       non_participate ->      Warning
+#                       error ->                        Critical
+$CHECK_PORT_FC = 0;
+#       check_cap_ssd :         Check used SSD capacity
+#                       >= $PCWARNINGFC ->      Warning
+#                       >= $PCCRITICALFC ->     Critical
+$CHECK_CAP_SSD = 1;
+#       check_cap_fc :  Check used FC capacity
+#                       >= $PCWARNINGFC ->      Warning
+#                       >= $PCCRITICALFC ->     Critical
+$CHECK_CAP_FC = 1;
+#       check_cap_nl : Check used NL capacity
+#                       >= $PCWARNINGNL ->      Warning
+#                       >= $PCCRITICALNL ->     Critical
+$CHECK_CAP_NL = 1;
+#       check_ps : Check Power Supply Node and Cage
+#                       Degraded ->             Warning
+#                       Failed ->               Critical
+$CHECK_PS = 1;
+#       check_snap_count : check amount of snap shots
+#                                               Wordcount "vcopy"
+#       Set max vcopies
+$CHECK_SNAP_COUNT = 1;
+#
+#       check_cage : Check cage health
+#                               Not healthy ->                  Critical
+#
+$CHECK_CAGE = 1;
+#
+# Check_service : check service times of virtual volumes
+#
+# Check service times of vv on remote copy side
+$CHECK_SERVICE_REMOTE = 1;
+#
+#
+# Check service times of vlun
+$CHECK_SERVICE = 1;
+
+
+# DO NOT CHANGE THE BELOW VARIABLE
+$DONT_TOUCH = 1;
